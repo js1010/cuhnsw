@@ -1,9 +1,6 @@
 jsmin
 numpy
 h5py
-supervisor
-jupyter
-tqdm
 fire
 pybind11
 hnswlib
