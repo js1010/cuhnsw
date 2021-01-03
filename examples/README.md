@@ -3,7 +3,7 @@
 1. first, it is good to know about python-fire in https://github.com/google/python-fire, if you haven't heard yet.
 2. download data
 
-```shell
+```
 # python example1.py download
 [INFO    ] 2021-01-03 22:10:29 [example1.py] [download:47]download data: wget http://ann-benchmarks.com/glove-50-angular.hdf5 -O glove-50-angular.hdf5.tmp
 --2021-01-03 22:10:29--  http://ann-benchmarks.com/glove-50-angular.hdf5
