@@ -1,4 +1,4 @@
-### Introductioon
+### Introduction
 
 This project is to speed up HNSW algorithm by CUDA. I expect that anyone who will be interested in this project might be already familiar with the following paper and the open source project. If not, I strongly recommend that you check them first.
 
