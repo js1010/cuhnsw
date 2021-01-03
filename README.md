@@ -102,7 +102,7 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
   - used `ef_construction`=150 for hnswlib and `ef_construction=160` for cuhnsw to achieve the same build quality
   - build quality is measured by the accuracy by the same search parameter (`ef_search`=300)
 
-| attr          |      1 vcpu |      2 vcpu |     4 vcpu |     8 vcpu |       gpu |
+| attr          |     1 vcpu |     2 vcpu |    4 vcpu |    8 vcpu |       gpu |
 |:--------------|-----------:|-----------:|----------:|----------:|----------:|
 | build time    | 343.909    | 179.836    | 89.7936   | 70.5476   | 14.7234   |
 | build quality |   0.863193 |   0.863301 |  0.863238 |  0.863165 |  0.863889 |
@@ -115,4 +115,14 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
 |:------------|--------:|--------:|--------:|--------:|--------:|
 | search time | 52.3024 | 26.5086 | 13.9146 | 10.8525 | 3.07964 |
 
-- the reason the parallel efficiency significantly drops from 4 cpu to 8 cpu might be hyper threading (there might be only 4 "physical" cores in this instance).
+- the reason why the parallel efficiency significantly drops from 4 vcpu to 8 vcpu might be hyper threading (there might be only 4 "physical" cores in this instance).
+
+### Thoughts on Future Task
+
+- Considering the cost of GPU and CPU, it seems impractical yet (currently one Tesla V100 device is equivalently fast as one standard cpu server (24-56 vcores) but the cost of Tesla V100 device is quite more expensive). Therefore, there seems to be a lot to do in the future.
+- The word in the parentheses shows the level of difficulty for each task
+
+1. upload package to pypi (easy): the task itself is very easy but seems not worth it unless this project is successful.
+2. implement parallel compilation using bazel or cmake (easy-medium): bazel is more preferable.
+3. achieve meaningful speed-up by using half-precision operation (medium): I experimented it, but only got around 10 % improvement. I am not sure if I have used the half-precision feature perfectly.
+4. support multi-device (very hard): it only supports single-device (gpu) yet since the graph should be shared across all the building threads.

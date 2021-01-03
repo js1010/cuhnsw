@@ -31,3 +31,7 @@ python example1.py run_cpu_inference --target=cuhnsw.index --topk=10
 ```
 
 7. reproduce the experimental results shown in README.md on the root directory
+
+```shell
+python example1.py run_experiments
+```
