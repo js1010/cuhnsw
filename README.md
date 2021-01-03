@@ -10,12 +10,14 @@ I also adapted some ideas from the following project.
 
 - n2 (alternative hnsw cpu implementation project): https://github.com/kakao/n2
 
-By brief survey, I found there are several papers to suggest to speed up ANN algorithms by GPU, but could not find single proper open sourced implementation yet.
+By brief survey, I found there are several papers and projects to suggest to speed up ANN algorithms by GPU.
 
-- papers related to using GPU for ANN
-  - http://research.baidu.com/Public/uploads/5f5c37aa9c37c.pdf (2020)
-  - https://arxiv.org/pdf/1702.05911.pdf (2017)
-
+- papers or projects related to using GPU for ANN
+  - paper (2020): http://research.baidu.com/Public/uploads/5f5c37aa9c37c.pdf
+  - paper (2017): https://arxiv.org/pdf/1702.05911.pdf
+  - slides (2020): https://wangzwhu.github.io/home/file/acmmm-t-part3-ann.pdf
+  - project (2017): https://github.com/facebookresearch/faiss
+  
 I started this project because I was originally interested in both CUDA programming and ANN algorithms. I release this project because it achieved meaningful performance and hope to develop further by community participation. 
 
 Literally, this package is implemented to build HNSW graphs using GPU, and to approximate nearest neighbor search through the built graphs, and the format of the model file is compatible with hnswlib. In other words, you can build a HNSW graph from this package, then save it and load it from hnswlib for search, and vice versa.
