@@ -113,11 +113,15 @@ void CuHNSW::SetData(const float* data, int num_data, int num_dims) {
       num_data, num_dims, block_cnt_, block_dim_);
   device_data_.resize(num_data * num_dims);
   #ifdef HALF_PRECISION
+    // DEBUG0("fp16")
     std::vector<cuda_scalar> hdata(num_data * num_dims);
-    for (int i = 0; i < num_data * num_dims; ++i)
+    for (int i = 0; i < num_data * num_dims; ++i) {
       hdata[i] = conversion(data[i]);
+      // DEBUG("hdata i: {}, scalar: {}", i, out_scalar(hdata[i]));
+    }
     thrust::copy(hdata.begin(), hdata.end(), device_data_.begin());
   #else
+    // DEBUG0("fp32")
     thrust::copy(data, data + num_data * num_dims, device_data_.begin());
   #endif
   data_ = data;

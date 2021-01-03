@@ -15,6 +15,7 @@ import sys
 from distutils import ccompiler, errors, msvccompiler, unixccompiler
 from setuptools.command.build_ext import build_ext as setuptools_build_ext
 
+HALF_PRECISION = False
 
 def find_in_path(name, path):
   "Find a file in a search path"
@@ -75,14 +76,19 @@ def locate_cuda():
     "-gencode=arch=compute_86,code=sm_86",
     "-gencode=arch=compute_86,code=compute_86",
     '--ptxas-options=-v', '-O2']
+  if HALF_PRECISION:
+    post_args = [flag for flag in post_args if "52" not in flag]
 
   if sys.platform == "win32":
     cudaconfig['lib64'] = os.path.join(home, 'lib', 'x64')
     post_args += ['-Xcompiler', '/MD', '-std=c++14',  "-Xcompiler", "/openmp"]
+    if HALF_PRECISION:
+      post_args += ["-Xcompiler", "/D HALF_PRECISION"]
   else:
     post_args += ['-c', '--compiler-options', "'-fPIC'",
                   "--compiler-options", "'-std=c++14'"]
-
+    if HALF_PRECISION:
+      post_args += ["--compiler-options", "'-D HALF_PRECISION'"]
   for k, val in cudaconfig.items():
     if not os.path.exists(val):
       logging.warning('The CUDA %s path could not be located in %s', k, val)

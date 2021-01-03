@@ -30,7 +30,7 @@ DIST_TYPE = "dot"
 NRZ = DIST_TYPE == "dot"
 OPT = { \
   "data_path": DATA_PATH,
-  "c_log_level": 2,
+  "c_log_level": 3,
   "ef_construction": 100,
   "hyper_threads": 100,
   "block_dim": 32,

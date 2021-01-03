@@ -10,9 +10,9 @@
 // not properly working yet..
 // #define HALF_PRECISION 1
 
-#if __CUDA_ARCH__ < 530
-  #undef HALF_PRECISION
-#endif
+// #if __CUDA_ARCH__ < 530
+//   #undef HALF_PRECISION
+// #endif
 
 #ifdef HALF_PRECISION
   typedef half cuda_scalar;

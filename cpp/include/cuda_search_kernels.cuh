@@ -30,6 +30,10 @@ __global__ void GetEntryPointsKernel(
     {
       const cuda_scalar* dst_vec = target_data + num_dims * target_nodes[entryid];
       entry_dist = GetDistanceByVec(src_vec, dst_vec, num_dims, dist_type);
+      // if (threadIdx.x == 0 and blockIdx.x == 0) { 
+      //   printf("srcid: %d, dstid: %d, dist: %f\n", 
+      //       qnodes[i], target_nodes[entryid], entry_dist);
+      // }
     }
     __syncthreads();
     bool updated = true;
