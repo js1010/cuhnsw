@@ -13,6 +13,7 @@ import h5py
 import fire
 # import tqdm
 import numpy as np
+import pandas as pd
 
 import hnswlib
 from cuhnsw import aux, CuHNSW
@@ -30,8 +31,8 @@ DIST_TYPE = "dot"
 NRZ = DIST_TYPE == "dot"
 OPT = { \
   "data_path": DATA_PATH,
-  "c_log_level": 3,
-  "ef_construction": 100,
+  "c_log_level": 2,
+  "ef_construction": 150,
   "hyper_threads": 100,
   "block_dim": 32,
   "nrz": NRZ,
@@ -174,7 +175,7 @@ def run_gpu_inference_large(
               "%.4e sec", num_queries, topk, ef_search, el0)
   return el0
 
-def run_gpu_training(ef_const=200, data_path=DATA_PATH):
+def run_gpu_training(ef_const=150, data_path=DATA_PATH):
   print("=" * BARRIER_SIZE)
   LOGGER.info("gpu training on %s with ef const %d", data_path, ef_const)
   OPT["ef_construction"] = ef_const
@@ -190,19 +191,18 @@ def run_gpu_training(ef_const=200, data_path=DATA_PATH):
   ch0.save_index(CUHNSW_INDEX_PATH)
   return el0
 
-def run_experiments():
-  for data_path in ["glove-200-angular.hdf5"]:
-    data_url = f"http://ann-benchmarks.com/{data_path}"
-    download(data_path, data_url)
-    LOGGER.info("experiment on %s", data_path)
-    run_gpu_training(ef_const=200, data_path=data_path)
-    run_gpu_inference(target="cuhnsw.index", data_path=data_path)
-    for i in []:
-      run_cpu_inference(target="cuhnsw.index", data_path=data_path,
-                        num_threads=i)
-      run_cpu_training(num_threads=i, data_path=data_path)
-      run_gpu_inference(target="hnswlib.index", data_path=data_path)
-
+def measure_build_performance():
+  build_time = {"attr": "build time"}
+  build_quality = {"attr": "build quality"}
+  build_time["gpu"] = run_gpu_training(ef_const=160)
+  _, build_quality["gpu"] = run_gpu_inference(target="cuhnsw.index")
+  for i in [1, 2, 4, 8]:
+    build_time[f"{i} cpu"] = run_cpu_training(ef_const=150, num_threads=i)
+    _, build_quality[f"{i} cpu"] = run_cpu_inference(target="hnswlib.index")
+  columns = [f"{i} cpu" for i in [1, 2, 4, 8]] + ["gpu"]
+  df0 = pd.DataFrame([build_time, build_quality])
+  df0.set_index("attr", inplace=True)
+  print(df0[columns].to_markdown())
 
 
 if __name__ == "__main__":
