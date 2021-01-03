@@ -120,9 +120,11 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
 ### Thoughts on Future Task
 
 - Considering the cost of GPU and CPU, it seems impractical yet (currently one Tesla V100 device is equivalently fast as one standard cpu server (24-56 vcores) but the cost of Tesla V100 device is quite more expensive). Therefore, there seems to be a lot to do in the future.
-- The word in the parentheses shows the level of difficulty for each task
+- The word in the parentheses shows the expected level of difficulty for each task
 
-1. upload package to pypi (easy): the task itself is very easy but seems not worth it unless this project is successful.
-2. implement parallel compilation using bazel or cmake (easy-medium): bazel is more preferable.
-3. achieve meaningful speed-up by using half-precision operation (medium): I experimented it, but only got around 10 % improvement. I am not sure if I have used the half-precision feature perfectly.
+1. upload package to pypi (easy): the task itself is very easy but will not worth it unless this project is successful.
+2. implement parallel compilation using bazel or cmake (easy-medium): bazel is more preferable. compilation time is a little bit painful.
+3. achieve meaningful speed-up by using half-precision operation (medium): I experimented it, but only got around 10 % improvement. I am not sure if I have used the half-precision feature appropriately.
 4. support multi-device (very hard): it only supports single-device (gpu) yet since the graph should be shared across all the building threads.
+
+- contribution is always welcome
