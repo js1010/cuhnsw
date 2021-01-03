@@ -39,7 +39,12 @@ void SearchHeuristic(
   if (tail > size2 - 1)
     tail = size2 - 1;
   const int max_head = tail + 1;
+  
+  // take some proportion of closest nodes by default
+  // this mechanism does not exist in hnswlib
+  // it refers to https://github.com/kakao/n2/blob/36888c3869ac478d896d0921ac64f21930d85659/src/heuristic.cc#L42
   const int nn_num = max_m * heuristic_coef;
+  
   int* _graph = graph + srcid * max_m;
   float* _distances = distances + srcid * max_m;
   // search heuristic
@@ -81,6 +86,9 @@ void SearchHeuristic(
   __syncthreads();
 
   // copy to graph
+  // take remaining nodes as new neighbors
+  // it also refers to https://github.com/kakao/n2/blob/36888c3869ac478d896d0921ac64f21930d85659/src/heuristic.cc#L85
+  // it does not exist in hnswlib as well
   if (threadIdx.x == 0) deg[srcid] = save_remains? max_head: head;
   __syncthreads();
 }

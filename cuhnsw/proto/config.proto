@@ -1,10 +1,13 @@
 // Copyright (c) 2020 Jisang Yoon
+// All rights reserved.
+//
+// This source code is licensed under the Apache 2.0 license found in the
+// LICENSE file in the root directory of this source tree.
 
 syntax = "proto2";
 
 message ConfigProto {
   optional int32 seed = 1 [default = 777];
-  required string data_path = 2;
   optional int32 c_log_level = 3 [default = 2];
   optional int32 py_log_level = 4 [default = 2];
   optional int32 max_m = 5 [default = 12];
