@@ -120,9 +120,12 @@ def run_gpu_inference(topk=100, target=TARGET_INDEX_PATH,
 def run_gpu_training(ef_const=150):
   OPT["ef_construction"] = ef_const
   ch0 = CuHNSW(OPT)
-  ch0.set_data()
+  h5f = h5py.File(DATA_PATH, "r")
+  data = h5f["train"][:, :].astype(np.float32)
+  h5f.close()
+  ch0.set_data(data)
   start = time.time()
-  ch0.build_graph()
+  ch0.build()
   LOGGER.info("elpased to build graph: %f sec", time.time() - start)
   ch0.save_index(CUHNSW_INDEX_PATH)
 

@@ -53,7 +53,7 @@ data = h5f["train"][:, :].astype(np.float32)
 h5f.close()
 ch0 = CuHNSW(opt={})
 ch0.set_data(data)
-ch0.build_graph()
+ch0.build()
 ch0.save_index("cuhnsw.index")
 ```
 
