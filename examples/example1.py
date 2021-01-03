@@ -28,7 +28,7 @@ DIST_TYPE = "dot"
 NRZ = DIST_TYPE == "dot"
 OPT = { \
   "data_path": DATA_PATH,
-  "c_log_level": 3,
+  "c_log_level": 2,
   "ef_construction": 100,
   "hyper_threads": 20,
   "block_dim": 32,
@@ -49,7 +49,7 @@ def download():
   os.rename(DATA_PATH + ".tmp", DATA_PATH)
 
 
-def run_cpu_inference(topk=100, ef_search=100,
+def run_cpu_inference(topk=100, ef_search=300,
                       target=TARGET_INDEX_PATH, evaluate=True):
   h5f = h5py.File(DATA_PATH, "r")
   num_data = h5f["train"].shape[0]
@@ -93,7 +93,7 @@ def run_cpu_training(ef_const=150, num_threads=-1):
   LOGGER.info("index saved to %s", HNSWLIB_INDEX_PATH)
 
 def run_gpu_inference(topk=100, target=TARGET_INDEX_PATH,
-                      ef_search=100, evaluate=True):
+                      ef_search=300, evaluate=True):
   ch0 = CuHNSW(OPT)
   LOGGER.info("load model from %s by cuhnsw", target)
   ch0.load_index(target)
@@ -117,8 +117,7 @@ def run_gpu_inference(topk=100, target=TARGET_INDEX_PATH,
       accs.append(acc)
     LOGGER.info("accuracy mean: %.4e, std: %.4e", np.mean(accs), np.std(accs))
 
-def run_gpu_training(ef_const=150, reverse_cand=False):
-  OPT["reverse_cand"] = reverse_cand
+def run_gpu_training(ef_const=150):
   OPT["ef_construction"] = ef_const
   ch0 = CuHNSW(OPT)
   ch0.set_data()
