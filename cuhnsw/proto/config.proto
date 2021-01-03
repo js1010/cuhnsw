@@ -1,0 +1,27 @@
+// Copyright (c) 2020 Jisang Yoon
+// All rights reserved.
+//
+// This source code is licensed under the Apache 2.0 license found in the
+// LICENSE file in the root directory of this source tree.
+
+syntax = "proto2";
+
+message ConfigProto {
+  optional int32 seed = 1 [default = 777];
+  optional int32 c_log_level = 3 [default = 2];
+  optional int32 py_log_level = 4 [default = 2];
+  optional int32 max_m = 5 [default = 12];
+  optional int32 max_m0 = 6 [default = 24];
+  optional int32 ef_construction = 7 [default = 150];
+  // optional int32 ef_search = 8 [default = 50];
+  optional double level_mult = 9;
+  optional bool save_remains = 10;
+  optional double hyper_threads = 11 [default = 10];
+  optional int32 block_dim = 12 [default = 32];
+  optional string dist_type = 13 [default = "dot"];
+  optional int32 visited_table_size = 17;
+  optional int32 visited_list_size = 14 [default = 8192];
+  optional bool nrz = 15 [default = true];
+  optional bool reverse_cand = 16;
+  optional double heuristic_coef = 18 [default = 0.25];
+}
