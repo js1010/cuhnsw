@@ -77,7 +77,7 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
   - `py_log_level`: log level in python logging
   - `max_m`: maximum number of links in layers higher than ground layer
   - `max_m0`: maximum number of links in the ground layer
-  - `level_mult`: multiplier to draw levels of each element (defualt: 0 => setted as `1 / log(max_m0)` in cpp as recommended in hnsw paper)
+  - `level_mult`: multiplier to draw levels of each element (defualt: 0 => setted as `1 / log(max_m0)` in initialization as recommended in hnsw paper)
   - `save_remains`: link to remained candidates in SearchHeuristic (adapted from n2)
   - `heuristic_coff`: select some closest candidates by default (also adapted from n2)
   - `hyper_threads`: set the number of gpu blocks as the total number of concurrent cores exceeds the physical number of cores
