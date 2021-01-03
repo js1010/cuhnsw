@@ -40,7 +40,7 @@ python setup.py install
 
 ### How to use
 
-- examples/example1.py and examples/README.md will be very helpful to understand the usage.
+- `examples/example1.py` and `examples/README.md` will be very helpful to understand the usage.
 - build and save model
 
 ```python
@@ -53,7 +53,7 @@ data = h5f["train"][:, :].astype(np.float32)
 h5f.close()
 ch0 = CuHNSW(opt={})
 ch0.set_data(data)
-ch0.build_braph()
+ch0.build_graph()
 ch0.save_index("cuhnsw.index")
 ```
 
@@ -67,11 +67,11 @@ h5f = h5py.File("glove-50-angular.hdf5", "r")
 data = h5f["test"][:, :].astype(np.float32)
 h5f.close()
 ch0 = CuHNSW(opt={})
-ch0.load_model("cuhnsw.index")
+ch0.load_index("cuhnsw.index")
 nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
 ```
 
-- Option parameters (see cuhnsw/proto/config.proto)
+- Option parameters (see `cuhnsw/proto/config.proto`)
   - `seed`: numpy random seed (used in random levels)
   - `c_log_level`: log level in cpp logging (spdlog)
   - `py_log_level`: log level in python logging
@@ -87,4 +87,3 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
   - `visited_list_size`: size of list to store the visited nodes in each search (useful to reset table after each search)
   - `reverse_cand`: select the candidate with the furthest distance if True (it makes the build slower but achieves better quality)
   - `dist_type`: euclidean distance if "l2" and inner product distaance if "dot"
-

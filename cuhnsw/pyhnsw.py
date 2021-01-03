@@ -1,10 +1,14 @@
 # Copyright (c) 2020 Jisang Yoon
+# All rights reserved.
+#
+# This source code is licensed under the Apache 2.0 license found in the
+# LICENSE file in the root directory of this source tree.
+
 # pylint: disable=no-name-in-module,too-few-public-methods,no-member
 import os
 import json
 import tempfile
 
-import h5py
 import numpy as np
 
 from cuhnsw import aux
@@ -33,20 +37,15 @@ class CuHNSW:
       f"failed to load {tmp.name}"
     os.remove(tmp.name)
 
-  def set_data(self):
-    self.logger.info("read data from %s", self.opt.data_path)
-    h5f = h5py.File(self.opt.data_path, "r")
-    train_df = h5f["train"]
-    self.data = train_df[:, :].astype(np.float32)
+  def set_data(self, data):
+    self.data = data.copy()
     if self.opt.nrz:
       self.data /= np.linalg.norm(self.data, axis=1)[:, None]
-    h5f.close()
-
     num_data, num_dims = self.data.shape
-    self.logger.info("num_data: %d, num_dims: %d", num_data, num_dims)
+    self.logger.info("data shape: %d x %d", num_data, num_dims)
     self.obj.set_data(self.data)
 
-  def build_graph(self):
+  def build(self):
     self.set_random_levels()
     self.obj.build_graph()
 
