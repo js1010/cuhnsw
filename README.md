@@ -110,7 +110,9 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
 - search time comparison
   - search time on 100k random queries
   - search `quality` is quaranteed to the same (exact match)
-| attr        |   1 vcpu |   2 vcpu |   4 vcpu |   8 vcpu |     gpu |
+
+| attr        |  1 vcpu |  2 vcpu |  4 vcpu |  8 vcpu |     gpu |
 |:------------|--------:|--------:|--------:|--------:|--------:|
 | search time | 52.3024 | 26.5086 | 13.9146 | 10.8525 | 3.07964 |
+
 - the reason the parallel efficiency significantly drops from 4 cpu to 8 cpu might be hyper threading (there might be only 4 "physical" cores in this instance).
