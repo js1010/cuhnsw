@@ -65,8 +65,8 @@ drwxr-xr-x 11 root root 4.0K Jan  3 22:02 ..
 5. search the nearest neighbors loading the file in cuhnsw (GPU)
 
 ```
-# python example1.py run_gpu_inference --target=cuhnsw.index
-[INFO    ] 2021-01-03 22:14:16 [pyhnsw.py] [__init__:30]opt: {
+# python example1.py run_gpu_inference --target=cuhnsw.index --topk=10
+[INFO    ] 2021-01-03 22:25:44 [pyhnsw.py] [__init__:30]opt: {
   "data_path": "glove-50-angular.hdf5",
   "c_log_level": 2,
   "ef_construction": 100,
@@ -85,17 +85,17 @@ drwxr-xr-x 11 root root 4.0K Jan  3 22:02 ..
   "visited_list_size": 8192,
   "heuristic_coef": 0.25
 }
-[info    ] 2021-01-03 22:14:16 [cuhnsw_base.cu:59] cuda device info, major: 7, minor: 5, multi processors: 40, cores: 2560
-[INFO    ] 2021-01-03 22:14:16 [example1.py] [run_gpu_inference:98]load model from cuhnsw.index by cuhnsw
-[INFO    ] 2021-01-03 22:14:18 [example1.py] [run_gpu_inference:111]elapsed for inferencing 10000 queries of top@100 (ef_search: 300): 1.0559e+00 sec
-[INFO    ] 2021-01-03 22:14:18 [example1.py] [run_gpu_inference:118]accuracy mean: 8.6135e-01, std: 1.5307e-01
+[info    ] 2021-01-03 22:25:44 [cuhnsw_base.cu:59] cuda device info, major: 7, minor: 5, multi processors: 40, cores: 2560
+[INFO    ] 2021-01-03 22:25:44 [example1.py] [run_gpu_inference:98]load model from cuhnsw.index by cuhnsw
+[INFO    ] 2021-01-03 22:25:46 [example1.py] [run_gpu_inference:111]elapsed for inferencing 10000 queries of top@10 (ef_search: 300): 1.0471e+00 sec
+[INFO    ] 2021-01-03 22:25:46 [example1.py] [run_gpu_inference:118]accuracy mean: 9.3027e-01, std: 1.3084e-01
 ```
 
 6. you can also search the nearest neighbor by hnswlib (CPU)
 
 ```
-# python example1.py run_cpu_inference --target=cuhnsw.index
-[INFO    ] 2021-01-03 22:15:28 [example1.py] [run_cpu_inference:60]load cuhnsw.index by hnswlib
-[INFO    ] 2021-01-03 22:15:35 [example1.py] [run_cpu_inference:69]elapsed for processing 10000 queries computing top@100: 4.8169e+00 sec
-[INFO    ] 2021-01-03 22:15:37 [example1.py] [run_cpu_inference:76]accuracy mean: 8.6135e-01, std: 1.5307e-01
+# python example1.py run_cpu_inference --target=cuhnsw.index --topk=10
+[INFO    ] 2021-01-03 22:25:11 [example1.py] [run_cpu_inference:60]load cuhnsw.index by hnswlib
+[INFO    ] 2021-01-03 22:25:18 [example1.py] [run_cpu_inference:69]elapsed for processing 10000 queries computing top@10: 4.7242e+00 sec
+[INFO    ] 2021-01-03 22:25:18 [example1.py] [run_cpu_inference:76]accuracy mean: 9.3027e-01, std: 1.3084e-01
 ```

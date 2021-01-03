@@ -1,8 +1,5 @@
 jsmin
 numpy
-h5py
-fire
 pybind11
-hnswlib
 protobuf==3.10.0
 grpcio-tools==1.27.1

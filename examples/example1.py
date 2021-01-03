@@ -19,6 +19,8 @@ from cuhnsw import aux, CuHNSW
 
 LOGGER = aux.get_logger()
 
+NUM_DATA = 1183514
+BARRIER_SIZE = 100
 DATA_PATH = "glove-50-angular.hdf5"
 CUHNSW_INDEX_PATH = "cuhnsw.index"
 HNSWLIB_INDEX_PATH = "hnswlib.index"
@@ -30,28 +32,31 @@ OPT = { \
   "data_path": DATA_PATH,
   "c_log_level": 2,
   "ef_construction": 100,
-  "hyper_threads": 20,
+  "hyper_threads": 100,
   "block_dim": 32,
   "nrz": NRZ,
   "reverse_cand": False,
-  # "heuristic_coef": 0.0,
+  "heuristic_coef": 0.0,
   "dist_type": DIST_TYPE, \
 }
 
 
-def download():
-  if os.path.exists(DATA_PATH):
+def download(data_path=DATA_PATH, data_url=DATA_URL):
+  if os.path.exists(data_path):
     return
-  cmds = ["wget", DATA_URL, "-O", DATA_PATH + ".tmp"]
+  cmds = ["wget", data_url, "-O", data_path + ".tmp"]
   cmds = " ".join(cmds)
   LOGGER.info("download data: %s", cmds)
   subprocess.call(cmds, shell=True)
-  os.rename(DATA_PATH + ".tmp", DATA_PATH)
+  os.rename(data_path + ".tmp", data_path)
 
 
-def run_cpu_inference(topk=100, ef_search=300,
-                      target=TARGET_INDEX_PATH, evaluate=True):
-  h5f = h5py.File(DATA_PATH, "r")
+def run_cpu_inference(topk=100, ef_search=300, data_path=DATA_PATH,
+                      target=TARGET_INDEX_PATH, evaluate=True,
+                      num_threads=-1):
+  print("=" * BARRIER_SIZE)
+  LOGGER.info("cpu inference on %s with target %s", data_path, target)
+  h5f = h5py.File(data_path, "r")
   num_data = h5f["train"].shape[0]
   queries = h5f["test"][:, :].astype(np.float32)
   neighbors = h5f["neighbors"][:, :topk].astype(np.int32)
@@ -64,9 +69,10 @@ def run_cpu_inference(topk=100, ef_search=300,
   queries /= np.linalg.norm(queries, axis=1)[:, None]
 
   start = time.time()
-  labels, _ = hl0.knn_query(queries, k=topk, num_threads=1)
+  labels, _ = hl0.knn_query(queries, k=topk, num_threads=num_threads)
+  el0 = time.time() - start
   LOGGER.info("elapsed for processing %d queries computing top@%d: %.4e sec",
-              num_queries, topk, time.time() - start)
+              num_queries, topk, el0)
   if evaluate:
     accs = []
     for _pred_nn, _gt_nn in zip(labels, neighbors):
@@ -74,9 +80,36 @@ def run_cpu_inference(topk=100, ef_search=300,
       acc = len(intersection) / float(topk)
       accs.append(acc)
     LOGGER.info("accuracy mean: %.4e, std: %.4e", np.mean(accs), np.std(accs))
+    return el0, np.mean(accs)
+  return el0
 
-def run_cpu_training(ef_const=150, num_threads=-1):
-  h5f = h5py.File(DATA_PATH, "r")
+def run_cpu_inference_large(
+  topk=100, target=TARGET_INDEX_PATH, data_path=DATA_PATH, ef_search=300,
+  num_queries=100000, num_dims=50, num_threads=-1):
+  print("=" * BARRIER_SIZE)
+  LOGGER.info("cpu inference on %s with target %s", data_path, target)
+
+  queries = np.random.normal(size=(num_queries, num_dims)).astype(np.float32)
+  queries /= np.linalg.norm(queries, axis=1)[:, None]
+
+  hl0 = hnswlib.Index(space="ip", dim=queries.shape[1])
+  LOGGER.info("load %s by hnswlib", target)
+  hl0.load_index(target, max_elements=NUM_DATA)
+  hl0.set_ef(ef_search)
+  queries /= np.linalg.norm(queries, axis=1)[:, None]
+
+  start = time.time()
+  _, _ = hl0.knn_query(queries, k=topk, num_threads=num_threads)
+  el0 = time.time() - start
+  LOGGER.info("elapsed for inferencing %d queries of top@%d (ef_search: %d): "
+              "%.4e sec", num_queries, topk, ef_search, el0)
+  return el0
+
+def run_cpu_training(ef_const=150, num_threads=-1, data_path=DATA_PATH):
+  print("=" * BARRIER_SIZE)
+  LOGGER.info("cpu training on %s with ef const %d, num_threads: %d",
+              data_path, ef_const, num_threads)
+  h5f = h5py.File(data_path, "r")
   data = h5f["train"][:, :].astype(np.float32)
   h5f.close()
   hl0 = hnswlib.Index(space="ip", dim=data.shape[1])
@@ -87,18 +120,21 @@ def run_cpu_training(ef_const=150, num_threads=-1):
   start = time.time()
   hl0.add_items(data, np.arange(num_data, dtype=np.int32),
                 num_threads=num_threads)
-  LOGGER.info("elapsed for adding %d items: %.4e sec",
-              num_data, time.time() - start)
+  el0 = time.time() - start
+  LOGGER.info("elapsed for adding %d items: %.4e sec", num_data, el0)
   hl0.save_index(HNSWLIB_INDEX_PATH)
   LOGGER.info("index saved to %s", HNSWLIB_INDEX_PATH)
+  return el0
 
-def run_gpu_inference(topk=100, target=TARGET_INDEX_PATH,
-                      ef_search=300, evaluate=True):
+def run_gpu_inference(topk=100, target=TARGET_INDEX_PATH, data_path=DATA_PATH,
+                      ef_search=300):
+  print("=" * BARRIER_SIZE)
+  LOGGER.info("gpu inference on %s with target %s", data_path, target)
   ch0 = CuHNSW(OPT)
   LOGGER.info("load model from %s by cuhnsw", target)
   ch0.load_index(target)
 
-  h5f = h5py.File(DATA_PATH, "r")
+  h5f = h5py.File(data_path, "r")
   queries = h5f["test"][:, :].astype(np.float32)
   neighbors = h5f["neighbors"][:, :topk].astype(np.int32)
   h5f.close()
@@ -107,28 +143,65 @@ def run_gpu_inference(topk=100, target=TARGET_INDEX_PATH,
 
   start = time.time()
   pred_nn, _, _ = ch0.search_knn(queries, topk, ef_search)
+  el0 = time.time() - start
   LOGGER.info("elapsed for inferencing %d queries of top@%d (ef_search: %d): "
-              "%.4e sec", num_queries, topk, ef_search, time.time() - start)
-  if evaluate:
-    accs = []
-    for _pred_nn, _gt_nn in zip(pred_nn, neighbors):
-      intersection = set(_pred_nn) & set(_gt_nn)
-      acc = len(intersection) / float(topk)
-      accs.append(acc)
-    LOGGER.info("accuracy mean: %.4e, std: %.4e", np.mean(accs), np.std(accs))
+              "%.4e sec", num_queries, topk, ef_search, el0)
+  accs = []
+  for _pred_nn, _gt_nn in zip(pred_nn, neighbors):
+    intersection = set(_pred_nn) & set(_gt_nn)
+    acc = len(intersection) / float(topk)
+    accs.append(acc)
+  LOGGER.info("accuracy mean: %.4e, std: %.4e", np.mean(accs), np.std(accs))
+  return el0, np.mean(accs)
 
-def run_gpu_training(ef_const=150):
+def run_gpu_inference_large(
+  topk=100, target=TARGET_INDEX_PATH, data_path=DATA_PATH, ef_search=300,
+  num_queries=100000, num_dims=50):
+  print("=" * BARRIER_SIZE)
+  LOGGER.info("gpu inference on %s with target %s", data_path, target)
+  ch0 = CuHNSW(OPT)
+  LOGGER.info("load model from %s by cuhnsw", target)
+  ch0.load_index(target)
+
+  queries = np.random.normal(size=(num_queries, num_dims)).astype(np.float32)
+  num_queries = queries.shape[0]
+  queries /= np.linalg.norm(queries, axis=1)[:, None]
+
+  start = time.time()
+  _, _, _ = ch0.search_knn(queries, topk, ef_search)
+  el0 = time.time() - start
+  LOGGER.info("elapsed for inferencing %d queries of top@%d (ef_search: %d): "
+              "%.4e sec", num_queries, topk, ef_search, el0)
+  return el0
+
+def run_gpu_training(ef_const=200, data_path=DATA_PATH):
+  print("=" * BARRIER_SIZE)
+  LOGGER.info("gpu training on %s with ef const %d", data_path, ef_const)
   OPT["ef_construction"] = ef_const
   ch0 = CuHNSW(OPT)
-  h5f = h5py.File(DATA_PATH, "r")
+  h5f = h5py.File(data_path, "r")
   data = h5f["train"][:, :].astype(np.float32)
   h5f.close()
   ch0.set_data(data)
   start = time.time()
   ch0.build()
-  LOGGER.info("elpased time to build by cuhnsw: %.4e sec",
-              time.time() - start)
+  el0 = time.time() - start
+  LOGGER.info("elpased time to build by cuhnsw: %.4e sec", el0)
   ch0.save_index(CUHNSW_INDEX_PATH)
+  return el0
+
+def run_experiments():
+  for data_path in ["glove-200-angular.hdf5"]:
+    data_url = f"http://ann-benchmarks.com/{data_path}"
+    download(data_path, data_url)
+    LOGGER.info("experiment on %s", data_path)
+    run_gpu_training(ef_const=200, data_path=data_path)
+    run_gpu_inference(target="cuhnsw.index", data_path=data_path)
+    for i in []:
+      run_cpu_inference(target="cuhnsw.index", data_path=data_path,
+                        num_threads=i)
+      run_cpu_training(num_threads=i, data_path=data_path)
+      run_gpu_inference(target="hnswlib.index", data_path=data_path)
 
 
 
