@@ -204,6 +204,22 @@ def measure_build_performance():
   df0.set_index("attr", inplace=True)
   print(df0[columns].to_markdown())
 
+def measure_search_performance():
+  search_time = {"attr": "search time"}
+  search_time["gpu"] = run_gpu_inference_large(target="cuhnsw.index")
+  for i in [1, 2, 4, 8]:
+    search_time[f"{i} cpu"] = run_cpu_inference_large(
+      target="cuhnsw.index", num_threads=i)
+  columns = [f"{i} cpu" for i in [1, 2, 4, 8]] + ["gpu"]
+  df0 = pd.DataFrame([search_time])
+  df0.set_index("attr", inplace=True)
+  print(df0[columns].to_markdown())
+
+
+def run_experiments():
+  measure_build_performance()
+  measure_search_performance()
+
 
 if __name__ == "__main__":
   fire.Fire()

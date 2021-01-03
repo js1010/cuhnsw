@@ -87,3 +87,30 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
   - `visited_list_size`: size of list to store the visited nodes in each search (useful to reset table after each search)
   - `reverse_cand`: select the candidate with the furthest distance if True (it makes the build slower but achieves better quality)
   - `dist_type`: euclidean distance if "l2" and inner product distaance if "dot"
+
+### Performance
+
+- tl;dr
+  - cuhnsw achieved the same build quality by 5 times faster build time than hnswlib with 8 vcpus on certain data and parameter setup
+  - cuhnsw achieved the same search quality by 3 times faster search time than hnswlib with 8 vcpus instance on certain data and parameter setup
+- Note1: HNSW search algorithm can be verified by exact match since it is deterministic. 
+  - I verified it with hnswlib, in other words, cuhnsw search and hnswlib search returns exactly same results by loading the same model file and the same queries and the same ef search.
+- Note2: GPU search has the advantage over CPU search only when it comes to the `Batch` search (i.e. processing large number of queries at once.) 
+- [P3 2xlarge instance](https://aws.amazon.com/ko/ec2/instance-types/p3/) is used to the experiment.
+- results can be reproduced by running `example/example1.py`
+- build time / quality results on glove-50-angular
+  - used `ef_construction`=150 for hnswlib and `ef_construction=160` for cuhnsw to achieve the same build quality
+  - build quality is measured by the accuracy by the same search parameter (`ef_search`=300)
+
+| attr          |      1 vcpu |      2 vcpu |     4 vcpu |     8 vcpu |       gpu |
+|:--------------|-----------:|-----------:|----------:|----------:|----------:|
+| build time    | 343.909    | 179.836    | 89.7936   | 70.5476   | 14.7234   |
+| build quality |   0.863193 |   0.863301 |  0.863238 |  0.863165 |  0.863889 |
+
+- search time comparison
+  - search time on 100k random queries
+  - search `quality` is quaranteed to the same (exact match)
+| attr        |   1 vcpu |   2 vcpu |   4 vcpu |   8 vcpu |     gpu |
+|:------------|--------:|--------:|--------:|--------:|--------:|
+| search time | 52.3024 | 26.5086 | 13.9146 | 10.8525 | 3.07964 |
+- the reason the parallel efficiency significantly drops from 4 cpu to 8 cpu might be hyper threading (there might be only 4 "physical" cores in this instance).
