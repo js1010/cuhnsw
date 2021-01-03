@@ -126,7 +126,8 @@ def run_gpu_training(ef_const=150):
   ch0.set_data(data)
   start = time.time()
   ch0.build()
-  LOGGER.info("elpased to build graph: %f sec", time.time() - start)
+  LOGGER.info("elpased time to build by cuhnsw: %.4e sec",
+              time.time() - start)
   ch0.save_index(CUHNSW_INDEX_PATH)
 
 
