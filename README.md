@@ -98,7 +98,7 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
 - Note1: HNSW search algorithm can be verified by exact match since it is deterministic. 
   - I verified it with hnswlib, in other words, cuhnsw search and hnswlib search returns exactly same results by loading the same model file and the same queries and the same ef search.
 - Note2: GPU search has the advantage over CPU search only when it comes to the `Batch` search (i.e. processing large number of queries at once.) 
-- [AWS P3 2xlarge instance](https://aws.amazon.com/ko/ec2/instance-types/p3/) is used to the experiment. (One Tesla V100 GPU with 8 vcpus)
+- [AWS P3 2xlarge instance](https://aws.amazon.com/ec2/instance-types/p3/) is used to the experiment. (One Tesla V100 GPU with 8 vcpus)
 - results can be reproduced by running `example/example1.py`.
 - build time / quality results on glove-50-angular
   - used `ef_construction`=150 for hnswlib and `ef_construction=160` for cuhnsw to achieve the same build quality
