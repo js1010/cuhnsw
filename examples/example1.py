@@ -206,7 +206,7 @@ def run_gpu_training(ef_const=150):
 def measure_build_performance():
   build_time = {"attr": "build time"}
   build_quality = {"attr": "build quality"}
-  build_time["gpu"] = run_gpu_training(ef_const=160)
+  build_time["gpu"] = run_gpu_training(ef_const=110)
   _, build_quality["gpu"] = run_gpu_inference(index_file="cuhnsw.index")
   for i in [1, 2, 4, 8]:
     build_time[f"{i} cpu"] = run_cpu_training(ef_const=150, num_threads=i)
