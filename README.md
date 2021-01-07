@@ -101,13 +101,13 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
 - [AWS P3 2xlarge instance](https://aws.amazon.com/ec2/instance-types/p3/) is used to the experiment. (One Tesla V100 GPU with 8 vcpus)
 - results can be reproduced by running `example/example1.py`.
 - build time / quality results on glove-50-angular
-  - used `ef_construction`=150 for hnswlib and `ef_construction=160` for cuhnsw to achieve the same build quality
+  - used `ef_construction`=150 for hnswlib and `ef_construction=110` for cuhnsw to achieve the same build quality
   - build quality is measured by the accuracy by the same search parameter (`ef_search`=300)
 
 | attr          |     1 vcpu |     2 vcpu |    4 vcpu |    8 vcpu |       gpu |
 |:--------------|-----------:|-----------:|----------:|----------:|----------:|
-| build time    | 343.909    | 179.836    | 89.7936   | 70.5476   | 14.7234   |
-| build quality |   0.863193 |   0.863301 |  0.863238 |  0.863165 |  0.863889 |
+| build time    | 343.909    | 179.836    | 89.7936   | 70.5476   | 8.2847    |
+| build quality |   0.863193 |   0.863301 |  0.863238 |  0.863165 |  0.865471 |
 
 - search time comparison on glove-50-angular
   - search time on 100k random queries
