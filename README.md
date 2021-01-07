@@ -93,7 +93,7 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
 ### Performance
 
 - tl;dr
-  - cuhnsw achieved the same build quality by 5 times faster build time than hnswlib with 8 vcpus on certain data and parameter setup
+  - cuhnsw achieved the same build quality by 8~9 times faster build time than hnswlib with 8 vcpus on certain data and parameter setup
   - cuhnsw achieved the same search quality by 3 times faster search time than hnswlib with 8 vcpus instance on certain data and parameter setup
 - Note1: HNSW search algorithm can be verified by exact match since it is deterministic. 
   - I verified it with hnswlib, in other words, cuhnsw search and hnswlib search returns exactly same results by loading the same model file and the same queries and the same ef search.
