@@ -111,7 +111,7 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
 
 - search time comparison on glove-50-angular
   - search time on 100k random queries
-  - search `quality` is quaranteed to the same (exact match)
+  - search `quality` is guaranteed to the same (exact match)
 
 | attr        |  1 vcpu |  2 vcpu |  4 vcpu |  8 vcpu |     gpu |
 |:------------|--------:|--------:|--------:|--------:|--------:|
