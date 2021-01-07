@@ -167,6 +167,21 @@ void PushNodeToPq(Neighbor* pq, int* size, const int max_size,
   __syncthreads();
 }
 
+__inline__ __device__
+void PushNodeToPq2(Neighbor* pq, int* size, const int max_size,
+    const cuda_scalar dist, const int srcid, const int dstid, const int* nodes) {
+  if (srcid == dstid) return;
+  if (CheckAlreadyExists(pq, *size, dstid)) return;
+  __syncthreads();
+  if (*size < max_size) {
+    PqPush(pq, size, dist, dstid, false);
+  } else if (gt(pq[0].distance, dist)) {
+    PqPop(pq, size);
+    PqPush(pq, size, dist, dstid, false);
+  }
+  __syncthreads();
+}
+
 // similar to bloom filter
 // while bloom filter prevents false negative, this visited table prevents false positive
 // if it says the node is visited, it is actually visited
