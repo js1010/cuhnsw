@@ -74,8 +74,8 @@ void SearchHeuristic(
     const bool save_remains,
     int* cand_nodes, cuda_scalar* cand_distances, 
     int* graph, float* distances, int* deg, 
-    const float heuristic_coef) {
-
+    const float heuristic_coef, int new_comer = -1) {
+  if (save_remains) new_comer = -1;
   int size2 = *size;
   __syncthreads();
 
@@ -103,12 +103,16 @@ void SearchHeuristic(
   
   int* _graph = graph + srcid * max_m;
   float* _distances = distances + srcid * max_m;
+  bool new_comer_inserted = false;
   // search heuristic
   for (int j = 0; j < size2; ++j) {
     if (head >= max_m) break;
-    if (head < nn_num) {
+    bool freepass = head < nn_num or 
+      (new_comer >= 0 and not new_comer_inserted and cand_nodes[j] != new_comer);
+    if (freepass) {
       if (threadIdx.x == 0) {
         _graph[head] = cand_nodes[j];
+        _distances[head] = out_scalar(cand_distances[j]);
       }
       head++;
       __syncthreads();
@@ -116,22 +120,31 @@ void SearchHeuristic(
     }
     const cuda_scalar dist_to_src = cand_distances[j];
     bool skip = false;
-    for (int k = 0; k < head; ++k) {
-      cuda_scalar dist = GetDistance(cand_nodes[j], _graph[k],
+    if (new_comer >= 0 and new_comer_inserted) {
+      cuda_scalar dist = GetDistance(cand_nodes[j], new_comer,
           num_dims, dist_type, nodes, data);
-      if (gt(dist_to_src, dist)) {
-        skip = true;
-        __syncthreads();
-        break;
+      skip = gt(dist_to_src, dist);
+    } else {
+      for (int k = 0; k < head; ++k) {
+        cuda_scalar dist = GetDistance(cand_nodes[j], _graph[k],
+            num_dims, dist_type, nodes, data);
+        if (gt(dist_to_src, dist)) {
+          skip = true;
+          __syncthreads();
+          break;
+        }
       }
     }
+    if (cand_nodes[j] == new_comer and not skip) 
+      new_comer_inserted = true;
+
     if (skip and tail >= head) {
       if (threadIdx.x == 0) {
         _graph[tail] = cand_nodes[j];
         _distances[tail] = out_scalar(cand_distances[j]);
       }
       tail--;
-    } else {
+    } else if (not skip){
       if (threadIdx.x == 0) {
         _graph[head] = cand_nodes[j];
         _distances[head] = out_scalar(cand_distances[j]);
@@ -149,7 +162,6 @@ void SearchHeuristic(
   __syncthreads();
 }
 
-
 __global__ void BuildLevelGraphKernel(
   const cuda_scalar* data, const int* nodes,
   const int num_dims, const int num_nodes, const int max_m, const int dist_type,
@@ -157,7 +169,7 @@ __global__ void BuildLevelGraphKernel(
   int* visited_table, int* visited_list, const int visited_table_size, const int visited_list_size, 
   int* mutex, int64_t* acc_visited_cnt,
   const bool reverse_cand, Neighbor* neighbors, int* global_cand_nodes, cuda_scalar* global_cand_distances,
-  const float heuristic_coef, int* backup_neighbors, cuda_scalar* backup_distances
+  const float heuristic_coef, int* backup_neighbors, cuda_scalar* backup_distances, bool* went_through_heuristic
   ) {
 
   static __shared__ int size;
@@ -263,6 +275,8 @@ __global__ void BuildLevelGraphKernel(
         ef_construction, max_m, save_remains,
         cand_nodes, cand_distances, 
         graph, distances, deg, heuristic_coef);
+    
+    if (threadIdx.x == 0) went_through_heuristic[srcid] = true;
 
     __syncthreads();
     
@@ -274,7 +288,6 @@ __global__ void BuildLevelGraphKernel(
       _backup_distances[j] = conversion(distances[srcid * max_m + j]);
     }
     __syncthreads();
-
     // release lock
     if (threadIdx.x == 0) mutex[srcid] = 0;
     __syncthreads();
@@ -293,29 +306,29 @@ __global__ void BuildLevelGraphKernel(
       const int* _graph = graph + max_m * dstid;
       const int _deg = deg[dstid];
       bool is_neighbor = IsNeighbor(_graph, _deg, srcid);
-      if (is_neighbor) {
-        if (threadIdx.x == 0) mutex[dstid] = 0;
-      } else {
+      if (not is_neighbor){
         PushNodeToPq2(ef_const_pq, &size, ef_construction,
             dist, dstid, srcid, nodes);
-        for (int k = 0; k < deg[dstid]; ++k) {
-          int dstid2 = graph[dstid * max_m + k];
+        for (int k = 0; k < _deg; ++k) {
+          int dstid2 = _graph[k];
           dist = conversion(distances[dstid * max_m + k]);
           PushNodeToPq2(ef_const_pq, &size, ef_construction,
               dist, dstid, dstid2, nodes);
         }
 
         __syncthreads();
+        int new_comer = went_through_heuristic[dstid]? srcid: -1;
+        __syncthreads();
         SearchHeuristic(ef_const_pq, &size, dstid, nodes,
             data, dist_type, num_dims,
             ef_construction, max_m, save_remains,
             cand_nodes, cand_distances, 
-            graph, distances, deg, heuristic_coef);
+            graph, distances, deg, heuristic_coef, new_comer);
+        if (threadIdx.x == 0) went_through_heuristic[dstid] = true;
         __syncthreads();
-
-        // release lock
-        if (threadIdx.x == 0) mutex[dstid] = 0;
       }
+      // release lock
+      if (threadIdx.x == 0) mutex[dstid] = 0;
       __syncthreads();
     }
     __syncthreads();

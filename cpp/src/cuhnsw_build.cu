@@ -154,6 +154,7 @@ void CuHNSW::BuildLevelGraph(int level) {
   thrust::device_vector<cuda_scalar> device_cand_distances(ef_construction_ * block_cnt_);
   thrust::device_vector<int> device_backup_neighbors(max_m * block_cnt_);
   thrust::device_vector<cuda_scalar> device_backup_distances(max_m * block_cnt_);
+  thrust::device_vector<bool> device_went_through_heuristic(size, false);
 
   thrust::copy(graph_vec.begin(), graph_vec.end(), device_graph.begin());
   thrust::copy(deg.begin(), deg.end(), device_deg.begin());
@@ -178,7 +179,8 @@ void CuHNSW::BuildLevelGraph(int level) {
     thrust::raw_pointer_cast(device_cand_distances.data()),
     heuristic_coef_,
     thrust::raw_pointer_cast(device_backup_neighbors.data()),
-    thrust::raw_pointer_cast(device_backup_distances.data())
+    thrust::raw_pointer_cast(device_backup_distances.data()),
+    thrust::raw_pointer_cast(device_went_through_heuristic.data())
     );
   CHECK_CUDA(cudaDeviceSynchronize());
   thrust::copy(device_deg.begin(), device_deg.end(), deg.begin());
