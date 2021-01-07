@@ -6,6 +6,7 @@
 
 # pylint: disable=no-name-in-module,logging-format-truncated
 import os
+from os.path import join as pjoin
 import time
 import subprocess
 
@@ -22,15 +23,15 @@ LOGGER = aux.get_logger()
 
 NUM_DATA = 1183514
 BARRIER_SIZE = 100
-DATA_PATH = "glove-50-angular.hdf5"
-CUHNSW_INDEX_PATH = "cuhnsw.index"
-HNSWLIB_INDEX_PATH = "hnswlib.index"
-TARGET_INDEX_PATH = "hnswlib.index"
+RES_DIR = "res"
+DATA_FILE = "glove-50-angular.hdf5"
+INDEX_FILE = "hnswlib.index"
+CUHNSW_INDEX_FILE = "cuhnsw.index"
+HNSWLIB_INDEX_FILE = "hnswlib.index"
 DATA_URL = "http://ann-benchmarks.com/glove-50-angular.hdf5"
 DIST_TYPE = "dot"
 NRZ = DIST_TYPE == "dot"
 OPT = { \
-  "data_path": DATA_PATH,
   "c_log_level": 2,
   "ef_construction": 150,
   "hyper_threads": 100,
@@ -42,30 +43,34 @@ OPT = { \
 }
 
 
-def download(data_path=DATA_PATH, data_url=DATA_URL):
+def download():
+  if not os.path.exists(RES_DIR):
+    os.makedirs(RES_DIR)
+  data_path = pjoin(RES_DIR, DATA_FILE)
   if os.path.exists(data_path):
     return
-  cmds = ["wget", data_url, "-O", data_path + ".tmp"]
+  cmds = ["wget", DATA_URL, "-O", data_path + ".tmp"]
   cmds = " ".join(cmds)
   LOGGER.info("download data: %s", cmds)
   subprocess.call(cmds, shell=True)
   os.rename(data_path + ".tmp", data_path)
 
 
-def run_cpu_inference(topk=100, ef_search=300, data_path=DATA_PATH,
-                      target=TARGET_INDEX_PATH, evaluate=True,
-                      num_threads=-1):
+def run_cpu_inference(topk=100, ef_search=300, index_file=INDEX_FILE,
+                      evaluate=True, num_threads=-1):
   print("=" * BARRIER_SIZE)
-  LOGGER.info("cpu inference on %s with target %s", data_path, target)
+  data_path = pjoin(RES_DIR, DATA_FILE)
+  index_path = pjoin(RES_DIR, index_file)
+  LOGGER.info("cpu inference on %s with index %s", data_path, index_path)
   h5f = h5py.File(data_path, "r")
   num_data = h5f["train"].shape[0]
   queries = h5f["test"][:, :].astype(np.float32)
   neighbors = h5f["neighbors"][:, :topk].astype(np.int32)
   h5f.close()
   hl0 = hnswlib.Index(space="ip", dim=queries.shape[1])
-  LOGGER.info("load %s by hnswlib", target)
+  LOGGER.info("load %s by hnswlib", index_path)
   num_queries = queries.shape[0]
-  hl0.load_index(target, max_elements=num_data)
+  hl0.load_index(index_path, max_elements=num_data)
   hl0.set_ef(ef_search)
   queries /= np.linalg.norm(queries, axis=1)[:, None]
 
@@ -84,18 +89,19 @@ def run_cpu_inference(topk=100, ef_search=300, data_path=DATA_PATH,
     return el0, np.mean(accs)
   return el0
 
-def run_cpu_inference_large(
-  topk=100, target=TARGET_INDEX_PATH, data_path=DATA_PATH, ef_search=300,
-  num_queries=100000, num_dims=50, num_threads=-1):
+def run_cpu_inference_large(topk=100, index_file=INDEX_FILE, ef_search=300,
+                            num_queries=100000, num_dims=50, num_threads=-1):
   print("=" * BARRIER_SIZE)
-  LOGGER.info("cpu inference on %s with target %s", data_path, target)
+  index_path = pjoin(RES_DIR, index_file)
+  data_path = pjoin(RES_DIR, DATA_FILE)
+  LOGGER.info("cpu inference on %s with index %s", data_path, index_path)
 
   queries = np.random.normal(size=(num_queries, num_dims)).astype(np.float32)
   queries /= np.linalg.norm(queries, axis=1)[:, None]
 
   hl0 = hnswlib.Index(space="ip", dim=queries.shape[1])
-  LOGGER.info("load %s by hnswlib", target)
-  hl0.load_index(target, max_elements=NUM_DATA)
+  LOGGER.info("load %s by hnswlib", index_path)
+  hl0.load_index(index_path, max_elements=NUM_DATA)
   hl0.set_ef(ef_search)
   queries /= np.linalg.norm(queries, axis=1)[:, None]
 
@@ -106,8 +112,9 @@ def run_cpu_inference_large(
               "%.4e sec", num_queries, topk, ef_search, el0)
   return el0
 
-def run_cpu_training(ef_const=150, num_threads=-1, data_path=DATA_PATH):
+def run_cpu_training(ef_const=150, num_threads=-1):
   print("=" * BARRIER_SIZE)
+  data_path = pjoin(RES_DIR, DATA_FILE)
   LOGGER.info("cpu training on %s with ef const %d, num_threads: %d",
               data_path, ef_const, num_threads)
   h5f = h5py.File(data_path, "r")
@@ -123,17 +130,19 @@ def run_cpu_training(ef_const=150, num_threads=-1, data_path=DATA_PATH):
                 num_threads=num_threads)
   el0 = time.time() - start
   LOGGER.info("elapsed for adding %d items: %.4e sec", num_data, el0)
-  hl0.save_index(HNSWLIB_INDEX_PATH)
-  LOGGER.info("index saved to %s", HNSWLIB_INDEX_PATH)
+  index_path = pjoin(RES_DIR, HNSWLIB_INDEX_FILE)
+  hl0.save_index(index_path)
+  LOGGER.info("index saved to %s", index_path)
   return el0
 
-def run_gpu_inference(topk=100, target=TARGET_INDEX_PATH, data_path=DATA_PATH,
-                      ef_search=300):
+def run_gpu_inference(topk=100, index_file=INDEX_FILE, ef_search=300):
   print("=" * BARRIER_SIZE)
-  LOGGER.info("gpu inference on %s with target %s", data_path, target)
+  data_path = pjoin(RES_DIR, DATA_FILE)
+  index_path = pjoin(RES_DIR, index_file)
+  LOGGER.info("gpu inference on %s with index %s", data_path, index_path)
   ch0 = CuHNSW(OPT)
-  LOGGER.info("load model from %s by cuhnsw", target)
-  ch0.load_index(target)
+  LOGGER.info("load model from %s by cuhnsw", index_path)
+  ch0.load_index(index_path)
 
   h5f = h5py.File(data_path, "r")
   queries = h5f["test"][:, :].astype(np.float32)
@@ -155,14 +164,15 @@ def run_gpu_inference(topk=100, target=TARGET_INDEX_PATH, data_path=DATA_PATH,
   LOGGER.info("accuracy mean: %.4e, std: %.4e", np.mean(accs), np.std(accs))
   return el0, np.mean(accs)
 
-def run_gpu_inference_large(
-  topk=100, target=TARGET_INDEX_PATH, data_path=DATA_PATH, ef_search=300,
-  num_queries=100000, num_dims=50):
+def run_gpu_inference_large(topk=100, index_file=INDEX_FILE, ef_search=300,
+                            num_queries=100000, num_dims=50):
   print("=" * BARRIER_SIZE)
-  LOGGER.info("gpu inference on %s with target %s", data_path, target)
+  index_path = pjoin(RES_DIR, index_file)
+  data_path = pjoin(RES_DIR, DATA_FILE)
+  LOGGER.info("gpu inference on %s with index %s", data_path, index_path)
   ch0 = CuHNSW(OPT)
-  LOGGER.info("load model from %s by cuhnsw", target)
-  ch0.load_index(target)
+  LOGGER.info("load model from %s by cuhnsw", index_path)
+  ch0.load_index(index_path)
 
   queries = np.random.normal(size=(num_queries, num_dims)).astype(np.float32)
   num_queries = queries.shape[0]
@@ -175,8 +185,9 @@ def run_gpu_inference_large(
               "%.4e sec", num_queries, topk, ef_search, el0)
   return el0
 
-def run_gpu_training(ef_const=150, data_path=DATA_PATH):
+def run_gpu_training(ef_const=150):
   print("=" * BARRIER_SIZE)
+  data_path = pjoin(RES_DIR, DATA_FILE)
   LOGGER.info("gpu training on %s with ef const %d", data_path, ef_const)
   OPT["ef_construction"] = ef_const
   ch0 = CuHNSW(OPT)
@@ -188,17 +199,18 @@ def run_gpu_training(ef_const=150, data_path=DATA_PATH):
   ch0.build()
   el0 = time.time() - start
   LOGGER.info("elpased time to build by cuhnsw: %.4e sec", el0)
-  ch0.save_index(CUHNSW_INDEX_PATH)
+  index_path = pjoin(RES_DIR, CUHNSW_INDEX_FILE)
+  ch0.save_index(index_path)
   return el0
 
 def measure_build_performance():
   build_time = {"attr": "build time"}
   build_quality = {"attr": "build quality"}
   build_time["gpu"] = run_gpu_training(ef_const=160)
-  _, build_quality["gpu"] = run_gpu_inference(target="cuhnsw.index")
+  _, build_quality["gpu"] = run_gpu_inference(index_file="cuhnsw.index")
   for i in [1, 2, 4, 8]:
     build_time[f"{i} cpu"] = run_cpu_training(ef_const=150, num_threads=i)
-    _, build_quality[f"{i} cpu"] = run_cpu_inference(target="hnswlib.index")
+    _, build_quality[f"{i} cpu"] = run_cpu_inference(index_file="hnswlib.index")
   columns = [f"{i} cpu" for i in [1, 2, 4, 8]] + ["gpu"]
   df0 = pd.DataFrame([build_time, build_quality])
   df0.set_index("attr", inplace=True)
@@ -206,10 +218,10 @@ def measure_build_performance():
 
 def measure_search_performance():
   search_time = {"attr": "search time"}
-  search_time["gpu"] = run_gpu_inference_large(target="cuhnsw.index")
+  search_time["gpu"] = run_gpu_inference_large(index_file="cuhnsw.index")
   for i in [1, 2, 4, 8]:
     search_time[f"{i} cpu"] = run_cpu_inference_large(
-      target="cuhnsw.index", num_threads=i)
+      index_file="cuhnsw.index", num_threads=i)
   columns = [f"{i} cpu" for i in [1, 2, 4, 8]] + ["gpu"]
   df0 = pd.DataFrame([search_time])
   df0.set_index("attr", inplace=True)
