@@ -7,7 +7,63 @@
 #include "cuda_utils_kernels.cuh"
 
 namespace cuhnsw {
+__inline__ __device__
+bool IsNeighbor(const int* graph, const int deg, const int dstid) {
+  
+  __syncthreads();
+  // figure out the warp/ position inside the warp
+  int warp =  threadIdx.x / WARP_SIZE;
+  int lane = threadIdx.x % WARP_SIZE;
+  
+  static __shared__ bool shared[WARP_SIZE];
+  
+  __syncthreads();
+  bool is_neighbor = false;
+  for (int i = threadIdx.x; i < deg; i += blockDim.x) {
+    if (graph[i] == dstid) {
+      is_neighbor = true;
+      break;
+    }
+  }
+  __syncthreads();
+  
+  #if __CUDACC_VER_MAJOR__ >= 9
+  unsigned int active = __activemask();
+  is_neighbor = __any_sync(active, is_neighbor);
+  #else
+  is_neighbor = __any(is_neighbor);
+  #endif
+  
+  // write out the partial reduction to shared memory if appropiate
+  if (lane == 0) {
+    shared[warp] = is_neighbor;
+  }
+  
+  __syncthreads();
+  
+  // if we we don't have multiple warps, we're done
+  if (blockDim.x <= WARP_SIZE) {
+    return shared[0];
+  } 
 
+
+  // otherwise reduce again in the first warp
+  is_neighbor = (threadIdx.x < blockDim.x / WARP_SIZE) ? shared[lane] : false;
+  if (warp == 0) {
+    #if __CUDACC_VER_MAJOR__ >= 9
+    active = __activemask();
+    is_neighbor = __any_sync(active, is_neighbor);
+    #else
+    is_neighbor = __any(is_neighbor);
+    #endif
+    // broadcast back to shared memory
+    if (threadIdx.x == 0) {
+        shared[0] = is_neighbor;
+    }
+  }
+  __syncthreads();
+  return shared[0];
+}
 
 __inline__ __device__
 void SearchHeuristic(
@@ -101,12 +157,17 @@ __global__ void BuildLevelGraphKernel(
   int* visited_table, int* visited_list, const int visited_table_size, const int visited_list_size, 
   int* mutex, int64_t* acc_visited_cnt,
   const bool reverse_cand, Neighbor* neighbors, int* global_cand_nodes, cuda_scalar* global_cand_distances,
-  const float heuristic_coef
+  const float heuristic_coef, int* backup_neighbors, cuda_scalar* backup_distances
   ) {
 
   static __shared__ int size;
   static __shared__ int visited_cnt;
   
+  // storage to store neighbors and distnces temporarily
+  static __shared__ int backup_deg;
+  int* _backup_neighbors = backup_neighbors + max_m * blockIdx.x;
+  cuda_scalar* _backup_distances = backup_distances + max_m * blockIdx.x;
+
   Neighbor* ef_const_pq = neighbors + ef_construction * blockIdx.x;
   int* cand_nodes = global_cand_nodes + ef_construction * blockIdx.x;
   cuda_scalar* cand_distances = global_cand_distances + ef_construction * blockIdx.x;
@@ -204,41 +265,57 @@ __global__ void BuildLevelGraphKernel(
         graph, distances, deg, heuristic_coef);
 
     __syncthreads();
+    
+    // backup neighbors to handle overwrite
+    if (threadIdx.x == 0) backup_deg = deg[srcid];
+    __syncthreads();
+    for (int j = threadIdx.x; j < backup_deg; j += blockDim.x) {
+      _backup_neighbors[j] = graph[srcid * max_m + j];
+      _backup_distances[j] = conversion(distances[srcid * max_m + j]);
+    }
+    __syncthreads();
 
     // release lock
     if (threadIdx.x == 0) mutex[srcid] = 0;
     __syncthreads();
 
     // run search heuristic for neighbors
-    for (int j = 0; j < deg[srcid]; ++j) {
-      int dstid = graph[srcid * max_m + j];
+    for (int j = 0; j < backup_deg; ++j) {
+      int dstid = _backup_neighbors[j];
+      cuda_scalar dist = _backup_distances[j];
       __syncthreads();
-
       // write access of dstid
       if (threadIdx.x == 0) {
         while (atomicCAS(&mutex[dstid], 0, 1)) {}
       }
-
       __syncthreads();
-      PushNodeToPq(ef_const_pq, &size, ef_construction,
-          data, num_dims, dist_type, dstid, srcid, nodes);
+      
+      const int* _graph = graph + max_m * dstid;
+      const int _deg = deg[dstid];
+      bool is_neighbor = IsNeighbor(_graph, _deg, srcid);
+      if (is_neighbor) {
+        if (threadIdx.x == 0) mutex[dstid] = 0;
+      } else {
+        PushNodeToPq2(ef_const_pq, &size, ef_construction,
+            dist, dstid, srcid, nodes);
+        for (int k = 0; k < deg[dstid]; ++k) {
+          int dstid2 = graph[dstid * max_m + k];
+          dist = conversion(distances[dstid * max_m + k]);
+          PushNodeToPq2(ef_const_pq, &size, ef_construction,
+              dist, dstid, dstid2, nodes);
+        }
 
-      for (int k = 0; k < deg[dstid]; ++k) {
-        int dstid2 = graph[dstid * max_m + k];
-        PushNodeToPq(ef_const_pq, &size, ef_construction,
-            data, num_dims, dist_type, dstid, dstid2, nodes);
+        __syncthreads();
+        SearchHeuristic(ef_const_pq, &size, dstid, nodes,
+            data, dist_type, num_dims,
+            ef_construction, max_m, save_remains,
+            cand_nodes, cand_distances, 
+            graph, distances, deg, heuristic_coef);
+        __syncthreads();
+
+        // release lock
+        if (threadIdx.x == 0) mutex[dstid] = 0;
       }
-
-      __syncthreads();
-      SearchHeuristic(ef_const_pq, &size, dstid, nodes,
-          data, dist_type, num_dims,
-          ef_construction, max_m, save_remains,
-          cand_nodes, cand_distances, 
-          graph, distances, deg, heuristic_coef);
-      __syncthreads();
-
-      // release lock
-      if (threadIdx.x == 0) mutex[dstid] = 0;
       __syncthreads();
     }
     __syncthreads();
