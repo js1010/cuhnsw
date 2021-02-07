@@ -1,0 +1,10 @@
+include cuda_setup.py
+include requirements.txt
+include pyproject.toml
+recursive-include cpp/src/ *.cu
+recursive-include cpp/src/ *.cc
+recursive-include cpp/include/ *.cuh
+recursive-include cpp/include/ *.hpp
+recursive-include 3rd/json11/ *
+recursive-include 3rd/spdlog/ *
+recursive-include 3rd/pybind11/ *
