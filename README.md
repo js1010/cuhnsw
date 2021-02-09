@@ -111,6 +111,7 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
   - used `ef_construction`=150 for hnswlib and `ef_construction=110` for cuhnsw to achieve the same build quality
   - build quality is measured by the accuracy by the same search parameter (`ef_search`=300)
   - build time is in seconds
+
 | attr          |     1 vcpu |     2 vcpu |    4 vcpu |    8 vcpu |       gpu |
 |:--------------|-----------:|-----------:|----------:|----------:|----------:|
 | build time    | 343.909    | 179.836    | 89.7936   | 70.5476   | 8.2847    |
