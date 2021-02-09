@@ -105,7 +105,7 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
 - Note1: HNSW search algorithm can be verified by exact match since it is deterministic. 
   - I verified it with hnswlib, in other words, cuhnsw search and hnswlib search returns exactly same results by loading the same model file and the same queries and the same ef search.
 - Note2: GPU search has the advantage over CPU search only when it comes to the `Batch` search (i.e. processing large number of queries at once.) 
-- [AWS P3 2xlarge instance](https://aws.amazon.com/ec2/instance-types/p3/) is used to the experiment. (One Tesla V100 GPU with 8 vcpus)
+- [AWS P3 2xlarge instance](https://aws.amazon.com/ec2/instance-types/p3/) is used to the experiment. (One Tesla V100 GPU with 8 vcpus, 3.06 USD / hr)
 - results can be reproduced by running `example/example1.py`.
 - build time / quality results on glove-50-angular
   - used `ef_construction`=150 for hnswlib and `ef_construction=110` for cuhnsw to achieve the same build quality
@@ -117,6 +117,7 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
 | build time    | 343.909    | 179.836    | 89.7936   | 70.5476   | 8.2847    |
 | build quality |   0.863193 |   0.863301 |  0.863238 |  0.863165 |  0.865471 |
 
+- update: measured build time / accuracy for cpu-only instance ([c5.24xlarge](https://aws.amazon.com/ec2/instance-types/c5/), 96 vcpu, 4.08 USD / hr): 9.6275 sec / 0.8628
 - search time comparison on glove-50-angular
   - search time on 1M random queries (seconds)
   - search `quality` is guaranteed to the same (exact match)
@@ -124,6 +125,8 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
 | attr        |  1 vcpu |  2 vcpu |  4 vcpu |  8 vcpu |     gpu |
 |:------------|--------:|--------:|--------:|--------:|--------:|
 | search time | 556.605 | 287.967 | 146.331 | 115.431 | 29.7008 |
+
+- update: measured 1M queries search time for cpu-only instance ([c5.24xlarge](https://aws.amazon.com/ec2/instance-types/c5/), 96 vcpu, 4.08 USD / hr): 22.4642 sec
 
 - the reason why the parallel efficiency significantly drops from 4 vcpu to 8 vcpu might be hyper threading (there might be only 4 "physical" cores in this instance).
 
