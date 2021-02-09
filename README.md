@@ -100,8 +100,8 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
 ### Performance
 
 - tl;dr
-  - cuhnsw achieved the same build quality by 8~9 times faster build time than hnswlib with 8 vcpus on certain data and parameter setup
-  - cuhnsw achieved the same search quality by 3 times faster search time than hnswlib with 8 vcpus instance on certain data and parameter setup
+  - cuhnsw achieved the same build quality by 8-9 times faster build time than hnswlib with 8 vcpus on certain data and parameter setup
+  - cuhnsw achieved the same search quality by 3-4 times faster search time than hnswlib with 8 vcpus instance on certain data and parameter setup
 - Note1: HNSW search algorithm can be verified by exact match since it is deterministic. 
   - I verified it with hnswlib, in other words, cuhnsw search and hnswlib search returns exactly same results by loading the same model file and the same queries and the same ef search.
 - Note2: GPU search has the advantage over CPU search only when it comes to the `Batch` search (i.e. processing large number of queries at once.) 
@@ -110,29 +110,28 @@ nns, distances, found_cnt = ch0.search_knn(data, topk=10, ef_search=300)
 - build time / quality results on glove-50-angular
   - used `ef_construction`=150 for hnswlib and `ef_construction=110` for cuhnsw to achieve the same build quality
   - build quality is measured by the accuracy by the same search parameter (`ef_search`=300)
-
+  - build time is in seconds
 | attr          |     1 vcpu |     2 vcpu |    4 vcpu |    8 vcpu |       gpu |
 |:--------------|-----------:|-----------:|----------:|----------:|----------:|
 | build time    | 343.909    | 179.836    | 89.7936   | 70.5476   | 8.2847    |
 | build quality |   0.863193 |   0.863301 |  0.863238 |  0.863165 |  0.865471 |
 
 - search time comparison on glove-50-angular
-  - search time on 100k random queries
+  - search time on 1M random queries (seconds)
   - search `quality` is guaranteed to the same (exact match)
 
 | attr        |  1 vcpu |  2 vcpu |  4 vcpu |  8 vcpu |     gpu |
 |:------------|--------:|--------:|--------:|--------:|--------:|
-| search time | 52.3024 | 26.5086 | 13.9146 | 10.8525 | 3.07964 |
+| search time | 556.605 | 287.967 | 146.331 | 115.431 | 29.7008 |
 
 - the reason why the parallel efficiency significantly drops from 4 vcpu to 8 vcpu might be hyper threading (there might be only 4 "physical" cores in this instance).
 
 ### Thoughts on Future Task
 
-- Considering the cost of GPU and CPU, it seems impractical yet (currently one Tesla V100 device is equivalently fast as one standard cpu server (24-56 vcores) but the cost of Tesla V100 device is quite more expensive). Therefore, there seems to be a lot to do in the future.
 - The word in the parentheses shows the expected level of difficulty for each task
 
-1. **implement parallel compilation using bazel or cmake (easy-medium)**: bazel is more preferable. compilation time is a little bit painful.
-2. **achieve meaningful speed-up by using half-precision operation (medium)**: I experimented it, but only got around 10 % improvement. I am not sure if I have used the half-precision feature appropriately.
+1. **implement parallel compilation using bazel or cmake (easy-medium)**: bazel is more preferable. compilation time is a little bit painful so far.
+2. **achieve significant speed-up by using half-precision operation (medium)**: I experimented it, but only got around 10 % improvement. I am not sure if I have used the half-precision feature appropriately.
 3. **support multi-device (very hard)**: it only supports single-device (gpu) yet since the graph should be shared across all the building threads.
 
 - contribution is always welcome

@@ -90,7 +90,7 @@ def run_cpu_inference(topk=100, ef_search=300, index_file=INDEX_FILE,
   return el0
 
 def run_cpu_inference_large(topk=100, index_file=INDEX_FILE, ef_search=300,
-                            num_queries=100000, num_dims=50, num_threads=-1):
+                            num_queries=1000000, num_dims=50, num_threads=-1):
   print("=" * BARRIER_SIZE)
   index_path = pjoin(RES_DIR, index_file)
   data_path = pjoin(RES_DIR, DATA_FILE)
@@ -165,7 +165,7 @@ def run_gpu_inference(topk=100, index_file=INDEX_FILE, ef_search=300):
   return el0, np.mean(accs)
 
 def run_gpu_inference_large(topk=100, index_file=INDEX_FILE, ef_search=300,
-                            num_queries=100000, num_dims=50):
+                            num_queries=1000000, num_dims=50):
   print("=" * BARRIER_SIZE)
   index_path = pjoin(RES_DIR, index_file)
   data_path = pjoin(RES_DIR, DATA_FILE)

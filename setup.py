@@ -33,7 +33,7 @@ assert platform.system() == 'Linux'  # TODO: MacOS
 
 MAJOR = 0
 MINOR = 0
-MICRO = 5
+MICRO = 6
 RELEASE = True
 STAGE = {True: '', False: 'b'}.get(RELEASE)
 VERSION = f'{MAJOR}.{MINOR}.{MICRO}{STAGE}'
@@ -163,12 +163,14 @@ def setup_package():
     name='cuhnsw',
     maintainer="Jisang Yoon",
     maintainer_email="vjs10101v@gmail.com",
+    author="Jisang Yoon",
+    author_email="vjs10101v@gmail.com",
     description=DOCLINES[0],
     long_description="\n".join(DOCLINES[2:]),
     url="https://github.com/js1010/cuhnsw",
     download_url="https://github.com/js1010/cuhnsw/releases",
     include_package_data=False,
-    license='Apac2',
+    license='Apache2',
     packages=['cuhnsw/'],
     cmdclass=cmdclass,
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
