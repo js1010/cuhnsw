@@ -74,8 +74,7 @@ void SearchHeuristic(
     const bool save_remains,
     int* cand_nodes, cuda_scalar* cand_distances, 
     int* graph, float* distances, int* deg, 
-    const float heuristic_coef, int new_comer = -1) {
-  if (save_remains) new_comer = -1;
+    const float heuristic_coef, const int new_comer = -1) {
   int size2 = *size;
   __syncthreads();
 
@@ -317,7 +316,7 @@ __global__ void BuildLevelGraphKernel(
         }
 
         __syncthreads();
-        int new_comer = went_through_heuristic[dstid]? srcid: -1;
+        const int new_comer = not save_remains and went_through_heuristic[dstid]? srcid: -1;
         __syncthreads();
         SearchHeuristic(ef_const_pq, &size, dstid, nodes,
             data, dist_type, num_dims,

@@ -4,6 +4,3 @@
 [submodule "3rd/spdlog"]
 	path = 3rd/spdlog
 	url = https://github.com/gabime/spdlog
-[submodule "3rd/pybind11"]
-	path = 3rd/pybind11
-	url = https://github.com/pybind/pybind11.git
