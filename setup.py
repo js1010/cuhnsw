@@ -18,6 +18,7 @@ import sysconfig
 import subprocess
 from setuptools import setup, Extension
 
+import pybind11
 import numpy as np
 from cuda_setup import CUDA, BUILDEXT
 
@@ -33,7 +34,7 @@ assert platform.system() == 'Linux'  # TODO: MacOS
 
 MAJOR = 0
 MINOR = 0
-MICRO = 6
+MICRO = 7
 RELEASE = True
 STAGE = {True: '', False: 'b'}.get(RELEASE)
 VERSION = f'{MAJOR}.{MINOR}.{MICRO}{STAGE}'
@@ -50,7 +51,6 @@ License :: OSI Approved :: Apache Software License""".format( \
   status=STATUS.get(RELEASE))
 CLIB_DIR = os.path.join(sysconfig.get_path('purelib'), 'cuhnsw')
 LIBRARY_DIRS = [CLIB_DIR]
-PYBIND_INCLUDE = "3rd/pybind11/include"
 
 with open("requirements.txt", "r") as fin:
   INSTALL_REQUIRES = [line.strip() for line in fin]
@@ -85,8 +85,8 @@ extensions = [
             extra_objects=[],
             include_dirs=[ \
               "cpp/include/", np.get_include(),
-              PYBIND_INCLUDE, CUDA['include'],
-              "3rd/json11", "3rd/spdlog/include"])
+              pybind11.get_include(), pybind11.get_include(True),
+              CUDA['include'], "3rd/json11", "3rd/spdlog/include"])
 ]
 
 
