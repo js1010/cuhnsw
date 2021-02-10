@@ -40,7 +40,7 @@ cuda_scalar dot(const cuda_scalar * a, const cuda_scalar * b, const int num_dims
   // partially reduce the dot product inside each warp using a shuffle
   cuda_scalar val = 0;
   for (int i = threadIdx.x; i < num_dims; i += blockDim.x)
-    val += mul(a[i], b[i]);
+    val = add(val, mul(a[i], b[i]));
   val = warp_reduce_sum(val);
   
   // write out the partial reduction to shared memory if appropiate
@@ -80,7 +80,7 @@ cuda_scalar squaresum(const cuda_scalar * a, const cuda_scalar * b, const int nu
   cuda_scalar val = 0;
   for (int i = threadIdx.x; i < num_dims; i += blockDim.x) {
     cuda_scalar _val = sub(a[i], b[i]);
-    val = mul(_val, _val);
+    val = add(val, mul(_val, _val));
   }
   __syncthreads();
   val = warp_reduce_sum(val);
