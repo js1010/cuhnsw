@@ -15,6 +15,7 @@ import sys
 from distutils import ccompiler, errors, msvccompiler, unixccompiler
 from setuptools.command.build_ext import build_ext as setuptools_build_ext
 
+
 HALF_PRECISION = False
 
 def find_in_path(name, path):
@@ -27,6 +28,61 @@ def find_in_path(name, path):
       return os.path.abspath(binpath)
   return None
 
+# reference: https://arnon.dk/
+# matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
+def get_cuda_sm_list(cuda_ver):
+  if "CUDA_SM_LIST" in os.environ:
+    sm_list = os.environ["CUDA_SM_LIST"].split(",")
+  else:
+    sm_list = ["30", "52", "60", "61", "70", "75", "80", "86"]
+    if cuda_ver >= 110:
+      filter_list = ["30"]
+      if cuda_ver == 110:
+        filter_list += ["86"]
+    else:
+      filter_list = ["80", "86"]
+      if cuda_ver < 100:
+        filter_list += ["75"]
+      if cuda_ver < 90:
+        filter_list += ["70"]
+      if cuda_ver < 80:
+        filter_list += ["60", "61"]
+    sm_list = [sm for sm in sm_list if sm not in filter_list]
+  return sm_list
+
+
+def get_cuda_compute(cuda_ver):
+  if "CUDA_COMPUTE" in os.environ:
+    compute = os.environ["CUDA_COMPUTE"]
+  else:
+    if 70 <= cuda_ver < 80:
+      compute = "52"
+    if 80 <= cuda_ver < 90:
+      compute = "61"
+    if 90 <= cuda_ver < 100:
+      compute = "70"
+    if 100 <= cuda_ver < 110:
+      compute = "75"
+    if cuda_ver == 110:
+      compute = "80"
+    if cuda_ver == 111:
+      compute = "86"
+  return compute
+
+
+def get_cuda_arch(cuda_ver):
+  if "CUDA_ARCH" in os.environ:
+    arch = os.environ["CUDA_ARCH"]
+  else:
+    if 70 <= cuda_ver < 92:
+      arch = "30"
+    if 92 <= cuda_ver < 110:
+      arch = "50"
+    if cuda_ver == 110:
+      arch = "52"
+    if cuda_ver == 111:
+      arch = "80"
+  return arch
 
 def locate_cuda():
   """Locate the CUDA environment on the system
@@ -62,20 +118,22 @@ def locate_cuda():
     home = os.path.dirname(os.path.dirname(nvcc))
 
   cudaconfig = {'home': home,
-          'nvcc': nvcc,
-          'include': os.path.join(home, 'include'),
-          'lib64':   os.path.join(home, 'lib64')}
-  post_args = [
-    "-arch=sm_52",
-    "-gencode=arch=compute_52,code=sm_52",
-    "-gencode=arch=compute_60,code=sm_60",
-    "-gencode=arch=compute_61,code=sm_61",
-    "-gencode=arch=compute_70,code=sm_70",
-    "-gencode=arch=compute_75,code=sm_75",
-    "-gencode=arch=compute_80,code=sm_80",
-    "-gencode=arch=compute_86,code=sm_86",
-    "-gencode=arch=compute_86,code=compute_86",
-    '--ptxas-options=-v', '-O2']
+                'nvcc': nvcc,
+                'include': os.path.join(home, 'include'),
+                'lib64':   os.path.join(home, 'lib64')}
+  cuda_ver = os.path.basename(os.path.realpath(home)).split("-")[1].split(".")
+  major, minor = int(cuda_ver[0]), int(cuda_ver[1])
+  cuda_ver = 10 * major + minor
+  assert cuda_ver >= 70, f"too low cuda ver {major}.{minor}"
+  print(f"cuda_ver: {major}.{minor}")
+  arch = get_cuda_arch(cuda_ver)
+  sm_list = get_cuda_sm_list(cuda_ver)
+  compute = get_cuda_compute(cuda_ver)
+  post_args = [f"-arch=sm_{arch}"] + \
+    [f"-gencode=arch=compute_{sm},code=sm_{sm}" for sm in sm_list] + \
+    [f"-gencode=arch=compute_{compute},code=compute_{compute}",
+     "--ptxas-options=-v", "-O2"]
+  print(f"nvcc post args: {post_args}")
   if HALF_PRECISION:
     post_args = [flag for flag in post_args if "52" not in flag]
 
