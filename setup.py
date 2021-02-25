@@ -34,7 +34,7 @@ assert platform.system() == 'Linux'  # TODO: MacOS
 
 MAJOR = 0
 MINOR = 0
-MICRO = 7
+MICRO = 8
 RELEASE = True
 STAGE = {True: '', False: 'b'}.get(RELEASE)
 VERSION = f'{MAJOR}.{MINOR}.{MICRO}{STAGE}'
