@@ -1,3 +1,9 @@
+# CUHNSW
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Build Status](https://travis-ci.org/js1010/cuhnsw.svg?branch=main)](https://travis-ci.org/js1010/cuhnsw) [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/dwyl/learn-travis/issues)
+
+Efficient CUDA implementation of Hierarchical Navigable Small World (HNSW) graph algorithm for Approximate Nearest Neighbor (ANN)
+
 ### Introduction
 
 This project is to speed up HNSW algorithm by CUDA. I expect that anyone who will be interested in this project might be already familiar with the following paper and the open source project. If not, I strongly recommend that you check them first.
