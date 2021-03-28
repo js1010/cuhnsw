@@ -23,6 +23,7 @@ By brief survey, I found there are several papers and projects to suggest to spe
   - paper (2017): https://arxiv.org/pdf/1702.05911.pdf
   - slides (2020): https://wangzwhu.github.io/home/file/acmmm-t-part3-ann.pdf
   - project (2017): https://github.com/facebookresearch/faiss
+  - paper (2019): https://arxiv.org/pdf/1912.01059.pdf (source repo: https://github.com/cgtuebingen/ggnn) [**UPDATED**: recently found..]
   
 I started this project because I was originally interested in both CUDA programming and ANN algorithms. I release this project because it achieved meaningful performance and hope to develop further by community participation. 
 
