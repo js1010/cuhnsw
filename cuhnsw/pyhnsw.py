@@ -16,6 +16,8 @@ from cuhnsw.cuhnsw_bind import CuHNSWBind
 
 EPS = 1e-10
 WARP_SIZE = 32
+DIST_ALIAS = {"ip": "dot", "euclidean": "l2", "cosine": "dot"}
+
 
 class CuHNSW:
   def __init__(self, opt=None):
@@ -35,10 +37,18 @@ class CuHNSW:
       f"invalid block dim ({self.opt.block_dim}, warp size: {WARP_SIZE})"
     assert self.obj.init(bytes(tmp.name, "utf8")), \
       f"failed to load {tmp.name}"
+    assert self.opt.dist_type in ["l2", "dot", "ip", "cosine"], \
+      self.opt.dist_type
+    self.opt.dist_type = DIST_ALIAS.get(self.opt.dist_type, self.opt.dist_type)
+    if self.opt.dist_type == "cosine":
+      self.opt.nrz = True
     os.remove(tmp.name)
 
   def set_data(self, data):
     self.data = data.copy()
+    if self.opt.nrz and self.opt.dist_type == "l2":
+      self.logger.warning( \
+        "it is not common to set nrz = True and dist_type = l2")
     if self.opt.nrz:
       self.data /= np.linalg.norm(self.data, axis=1)[:, None]
     num_data, num_dims = self.data.shape
