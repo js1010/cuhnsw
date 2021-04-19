@@ -198,6 +198,7 @@ def run_gpu_inference2(topk=5, index_file="cuhnsw.index", ef_search=300):
     for _idx, (_nn, _dist) in enumerate(zip(nn0[:cnt], distance[:cnt])):
       if DIST_TYPE == "l2":
         real_dist = np.linalg.norm(data[_nn] - queries[idx])
+        _dist = np.sqrt(_dist)
       elif DIST_TYPE == "dot":
         real_dist = data[_nn].dot(queries[idx])
       print(f"rank {_idx + 1}. neighbor: {_nn}, dist by lib: {_dist}, "
