@@ -23,7 +23,7 @@ LOGGER = aux.get_logger()
 
 NUM_DATA = 1183514
 DATA_FILE = "glove-50-angular.hdf5"
-DIST_TYPE = "dot"
+DIST_TYPE = "cosine"
 
 # NUM_DATA = 1000000
 # DATA_FILE = "sift-128-euclidean.hdf5"
@@ -35,9 +35,7 @@ INDEX_FILE = "hnswlib.index"
 CUHNSW_INDEX_FILE = "cuhnsw.index"
 HNSWLIB_INDEX_FILE = "hnswlib.index"
 DATA_URL = f"http://ann-benchmarks.com/{DATA_FILE}"
-HNSW_DIST_MAP = {"dot": "ip"}
-HNSW_DIST = HNSW_DIST_MAP.get(DIST_TYPE, DIST_TYPE)
-NRZ = DIST_TYPE == "dot"
+NRZ = DIST_TYPE == "cosine"
 OPT = { \
   "c_log_level": 2,
   "ef_construction": 150,
@@ -74,7 +72,7 @@ def run_cpu_inference(topk=100, ef_search=300, index_file=INDEX_FILE,
   queries = h5f["test"][:, :].astype(np.float32)
   neighbors = h5f["neighbors"][:, :topk].astype(np.int32)
   h5f.close()
-  hl0 = hnswlib.Index(space=HNSW_DIST, dim=queries.shape[1])
+  hl0 = hnswlib.Index(space=DIST_TYPE, dim=queries.shape[1])
   LOGGER.info("load %s by hnswlib", index_path)
   num_queries = queries.shape[0]
   hl0.load_index(index_path, max_elements=num_data)
@@ -107,7 +105,7 @@ def run_cpu_inference_large(topk=100, index_file=INDEX_FILE, ef_search=300,
   queries = np.random.normal(size=(num_queries, num_dims)).astype(np.float32)
   queries /= np.linalg.norm(queries, axis=1)[:, None]
 
-  hl0 = hnswlib.Index(space=HNSW_DIST, dim=queries.shape[1])
+  hl0 = hnswlib.Index(space=DIST_TYPE, dim=queries.shape[1])
   LOGGER.info("load %s by hnswlib", index_path)
   hl0.load_index(index_path, max_elements=NUM_DATA)
   hl0.set_ef(ef_search)
@@ -128,7 +126,7 @@ def run_cpu_training(ef_const=150, num_threads=-1):
   h5f = h5py.File(data_path, "r")
   data = h5f["train"][:, :].astype(np.float32)
   h5f.close()
-  hl0 = hnswlib.Index(space=HNSW_DIST, dim=data.shape[1])
+  hl0 = hnswlib.Index(space=DIST_TYPE, dim=data.shape[1])
   num_data = data.shape[0]
   data /= np.linalg.norm(data, axis=1)[:, None]
   hl0.init_index(max_elements=num_data, ef_construction=ef_const, M=12)
