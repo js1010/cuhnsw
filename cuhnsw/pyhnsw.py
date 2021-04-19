@@ -24,6 +24,14 @@ class CuHNSW:
     self.opt = aux.get_opt_as_proto(opt or {})
 
     self.opt.level_mult = self.opt.level_mult or 1 / np.log(self.opt.max_m)
+
+    # handle aliases of dist_type
+    assert self.opt.dist_type in ["l2", "euclidean", "dot", "ip", "cosine"], \
+      self.opt.dist_type
+    self.opt.dist_type = DIST_ALIAS.get(self.opt.dist_type, self.opt.dist_type)
+    if self.opt.dist_type == "cosine":
+      self.opt.nrz = True
+
     self.logger = aux.get_logger("cuhnsw", self.opt.py_log_level)
     tmp = tempfile.NamedTemporaryFile(mode='w', delete=False)
     opt_content = json.dumps(aux.proto_to_dict(self.opt), indent=2)
@@ -37,11 +45,6 @@ class CuHNSW:
       f"invalid block dim ({self.opt.block_dim}, warp size: {WARP_SIZE})"
     assert self.obj.init(bytes(tmp.name, "utf8")), \
       f"failed to load {tmp.name}"
-    assert self.opt.dist_type in ["l2", "euclidean", "dot", "ip", "cosine"], \
-      self.opt.dist_type
-    self.opt.dist_type = DIST_ALIAS.get(self.opt.dist_type, self.opt.dist_type)
-    if self.opt.dist_type == "cosine":
-      self.opt.nrz = True
     os.remove(tmp.name)
 
   def set_data(self, data):
