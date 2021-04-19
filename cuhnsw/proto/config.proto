@@ -21,7 +21,7 @@ message ConfigProto {
   optional string dist_type = 13 [default = "dot"];
   optional int32 visited_table_size = 17;
   optional int32 visited_list_size = 14 [default = 8192];
-  optional bool nrz = 15 [default = true];
+  optional bool nrz = 15;
   optional bool reverse_cand = 16;
   optional double heuristic_coef = 18 [default = 0.25];
 }
