@@ -37,7 +37,7 @@ class CuHNSW:
       f"invalid block dim ({self.opt.block_dim}, warp size: {WARP_SIZE})"
     assert self.obj.init(bytes(tmp.name, "utf8")), \
       f"failed to load {tmp.name}"
-    assert self.opt.dist_type in ["l2", "dot", "ip", "cosine"], \
+    assert self.opt.dist_type in ["l2", "euclidean", "dot", "ip", "cosine"], \
       self.opt.dist_type
     self.opt.dist_type = DIST_ALIAS.get(self.opt.dist_type, self.opt.dist_type)
     if self.opt.dist_type == "cosine":
